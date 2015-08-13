@@ -6,10 +6,20 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ClipDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableContainer;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RotateDrawable;
+import android.graphics.drawable.ScaleDrawable;
+import android.graphics.drawable.ShapeDrawable;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
 import android.view.GestureDetector;
@@ -202,8 +212,42 @@ public class FloatingActionMenu extends ViewGroup {
         });
     }
 
+    public static int getAlphaCompat( Drawable drawable ) {
+        if( drawable instanceof ColorDrawable ) {
+            return ((ColorDrawable) drawable).getColor() >>> 24;
+        } else if( drawable instanceof BitmapDrawable ) {
+            return ((BitmapDrawable) drawable).getPaint().getAlpha();
+        } else if( drawable instanceof RotateDrawable ) {
+            return getAlphaCompat( ((RotateDrawable) drawable).getDrawable() );
+        } else if( drawable instanceof ScaleDrawable ) {
+            return getAlphaCompat( ((ScaleDrawable) drawable).getDrawable() );
+        } else if( drawable instanceof ClipDrawable) {
+            //TODO: possible with reflection
+        } else if( drawable instanceof ShapeDrawable) {
+            //TODO: possible with reflection
+        } else if( drawable instanceof DrawableContainer) {
+            //TODO: possible with reflection
+        } else if( drawable instanceof GradientDrawable) {
+            //TODO: possible with reflection
+        }
+
+        return -1;
+    }
+
     private boolean isBackgroundEnabled() {
         return mBackgroundColor != Color.TRANSPARENT;
+    }
+
+    public boolean isBackgroundVisible()
+    {
+        boolean result = false;
+        Drawable background = getBackground();
+        if (background != null)
+        {
+
+            result = getAlphaCompat(background) > 0;
+        }
+        return result;
     }
 
     private void initPadding(int padding) {
@@ -584,9 +628,40 @@ public class FloatingActionMenu extends ViewGroup {
         }
     }
 
+    public interface FabAnimateChangesAction { void go(); }
+    public void animateChanges(final FabAnimateChangesAction changeAction)
+    {
+        final boolean isSetCloseOnTouchOutside = mIsSetClosedOnTouchOutside;
+        Log.d("FAB", "Close on outside = " + String.valueOf(isSetCloseOnTouchOutside));
+        setClosedOnTouchOutside(false);
+        this.setOnMenuToggleListener(new OnMenuToggleListener()
+        {
+            @Override
+            public void onMenuToggle(boolean opened)
+            {
+                if (!opened)
+                {
+                    mToggleListener = null;
+                    changeAction.go();
+                    open(true);
+                    new Handler().postDelayed(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            setClosedOnTouchOutside(isSetCloseOnTouchOutside);
+                            Log.d("FAB", "Close on outside reset to " + String.valueOf(isSetCloseOnTouchOutside));
+                        }
+                    }, ANIMATION_DURATION);
+                }
+            }
+        });
+        close(true, false);
+    }
+
     public void open(final boolean animate) {
         if (!isOpened()) {
-            if (isBackgroundEnabled()) {
+            if (isBackgroundEnabled() && !isBackgroundVisible()) {
                 mShowBackgroundAnimator.start();
             }
 
@@ -638,9 +713,11 @@ public class FloatingActionMenu extends ViewGroup {
         }
     }
 
-    public void close(final boolean animate) {
+    public void close(boolean animate) { close(animate, true); }
+
+    public void close(final boolean animate, final boolean hideBackground) {
         if (isOpened()) {
-            if (isBackgroundEnabled()) {
+            if (isBackgroundEnabled() && hideBackground) {
                 mHideBackgroundAnimator.start();
             }
 

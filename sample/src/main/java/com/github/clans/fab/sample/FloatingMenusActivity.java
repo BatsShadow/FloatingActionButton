@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
@@ -43,7 +44,7 @@ public class FloatingMenusActivity extends AppCompatActivity {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        FloatingActionMenu menu1 = (FloatingActionMenu) findViewById(R.id.menu1);
+        final FloatingActionMenu menu1 = (FloatingActionMenu) findViewById(R.id.menu1);
         final FloatingActionMenu menu2 = (FloatingActionMenu) findViewById(R.id.menu2);
         final FloatingActionMenu menu3 = (FloatingActionMenu) findViewById(R.id.menu3);
         FloatingActionMenu menu4 = (FloatingActionMenu) findViewById(R.id.menu4);
@@ -67,6 +68,27 @@ public class FloatingMenusActivity extends AppCompatActivity {
         programFab2.setLabelText("Programmatically added button");
         programFab2.setImageResource(R.drawable.ic_edit);
         menu2.addMenuButton(programFab2);
+
+        FloatingActionButton programFab3 = new FloatingActionButton(this);
+        programFab3.setButtonSize(FloatingActionButton.SIZE_MINI);
+        programFab3.setLabelText("Animate");
+        menu1.addMenuButton(programFab3);
+
+        programFab3.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                menu1.animateChanges(new FloatingActionMenu.FabAnimateChangesAction()
+                {
+                    @Override
+                    public void go()
+                    {
+                        Toast.makeText(FloatingMenusActivity.this, "Animating", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
 
         menus.add(menuDown);
         menus.add(menu1);
